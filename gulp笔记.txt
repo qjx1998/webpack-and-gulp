@@ -1,0 +1,236 @@
+gulp的使用
+
+第一步安装gulp:
+
+  全局安装 gulp
+  cnpm i -g gulp
+  项目开发依赖安装:
+  cnpm i gulp --save-dev
+
+第二步创文件:
+
+  在项目根目录创建名为 gulpfile.js 文件
+  2.1 引入gulp
+     var gulp = require('gulp')
+  2.2 注册任务 通过 gulp.task 用法如下:
+     gulp.task('任务名', function(){
+
+     //配置任务的的操作
+     return gulp.src() //src里面写入径
+                       //找到目标原文件，将数据读取到gulp的内存中
+     }) 
+第三步合并文件的操作:
+    安装插件:  cnpm i gulp-concat --save-dev
+    用法:  .pipe(concat('合并后文件名'))
+    然后输出文件到本地： .pipe(gulp.dest('输出入径'))
+第四步压缩文件的操作:
+    安装插件:  cnpm i gulp-uglify --save-dev
+    用法:  .pipe(concat('合并后文件名'))
+  重命名:       
+    安装插件:  cnpm i gulp-rename --save-dev
+    用法（固定）:  .pipe(rename({suffix: '.min'}))
+    然后再输出文件到本地： .pipe(gulp.dest('输出入径'))
+
+具体操作:
+  对于 js 文件
+     gulp.task('js',function(done){
+    return gulp.src('src/js/*.js')  //找到目标原文件，将数据读取到gulp的内存中
+    //深度遍历 gulp.src('src/js/**/*//*.js')
+    .pipe(concat('build.js'))    //临时合并文件
+    .pipe(gulp.dest('dist/js/')) //输出文件到本地
+    .pipe(uglify())              //压缩文件
+    .pipe(rename({suffix: '.min'})) //重命名
+    .pipe(gulp.dest('dist/js/'))
+ })
+
+  执行命令:  gulp js   (因为这里gulp.task中名字为js)
+   
+  对于 less 文件
+    安装插件:  cnpm i gulp-less --save-dev
+    用法:  .pipe(less())
+
+    例子:
+     gulp.task('less', function(done){
+       return gulp.src('src/less/*.less')
+         .pipe(less())   //编译less文件为css文件
+         .pipe(gulp.dest('src/css'))
+     })
+
+   执行命令:  gulp less   (因为这里gulp.task中名字为less)
+   
+   对于 css 文件
+     安装插件: cnpm i gulp-clean-css --save-dev
+     用法: .pipe(cssClean({compatibility: 'ie8'}))
+  
+    例子：
+      gulp.task('css', function(){
+        return gulp.src('src/css/*.css')
+          .pipe(concat('build.css'))
+          .pipe(rename({suffix: '.min'}))
+          .pipe(cssClean({compatibility: 'ie8'}))
+          .pipe(gulp.dest('dist/css/'))
+      })
+
+    执行命令:  gulp css   (因为这里gulp.task中名字为css)  
+
+    对于 html 文件
+     安装插件: cnpm i gulp-htmlmin --save-dev
+     用法: .pipe(htmlMin({collapseWhitespace:true}))
+
+     例子:
+       gulp.task('html', function(done){
+         return gulp.src('index.html')
+           .pipe(htmlMin({collapseWhitespace:true}))
+           .pipe(gulp.dest('dist/'))   
+       })
+
+       执行命令:  gulp html   (因为这里gulp.task中名字为html)
+
+对于所有的配置好后,不想一个一个去打包
+
+操作：
+   安装插件: cnpm i gulp-livereload --save-dev
+   用法：
+     在所有压缩任务（js,css,less,html）下面再加
+      .pipe(livereload())
+
+   // 注册监视任务
+    gulp.task('watch',['default'],function(){
+    // 开启监听
+    livereload.listen();
+    //确定监听的目标以及绑定相应的任务
+    gulp.watch('src/js/*.js',['js']);
+    gulp.watch(['src/css/*.css','src/less/*.less'],['css'])
+})
+   注册默认任务
+     gulp.task('default', ['js', 'less', 'css', 'html']);
+
+到这里已经完成了半自动打包，每次改完内容保存都会自动更新。
+
+对于全自动
+
+ 操作:
+   安装插件: cnpm i gulp-connect --save-dev
+             cnpm i open --save-dev
+
+
+
+
+    gulp.task('server', ['default'] ,function(done) {
+    connect.server({
+        root: 'dist/',
+        livereload: true,
+        port: 8080
+    });
+    //open可以自动打开指定端口号
+    open('http://localhost:8080/')    
+
+    //确定监听的目标以及绑定相应的任务
+    gulp.watch('src/js/*.js',['js']);
+    gulp.watch(['src/css/*.css','src/less/*.less'],['css'])
+})
+
+
+完整代码：
+var gulp = require('gulp')
+var concat = require('gulp-concat')
+var uglify = require('gulp-uglify')
+var rename = require('gulp-rename')
+var less = require('gulp-less')
+var cssClean = require('gulp-clean-css')
+var htmlMin = require('gulp-htmlmin')
+var livereload = require('gulp-livereload')
+var browserSync = require('browser-sync').create()
+var connect = require('gulp-connect')
+var open = require('open')
+// 注册任务
+
+// gulp.task('', function(){
+//    // 配置任务的的操作
+// })
+
+gulp.task('js',function(done){
+    return gulp.src('src/js/*.js')  //找到目标原文件，将数据读取到gulp的内存中
+    //深度遍历 gulp.src('src/js/**/*//*.js')
+    .pipe(concat('build.js'))    //临时合并文件
+    .pipe(gulp.dest('dist/js/')) //输出文件到本地
+    .pipe(uglify())              //压缩文件
+    .pipe(rename({suffix: '.min'})) //重命名
+    .pipe(gulp.dest('dist/js/'))
+    .pipe(livereload())
+    .pipe(connect.reload())
+ })
+
+// 注册默认任务
+
+// gulp.task('default', [])
+
+// 注册转换less的任务
+gulp.task('less', function(done){
+    return gulp.src('src/less/*.less')
+    .pipe(less())   //编译less文件为css文件
+    .pipe(gulp.dest('src/css'))
+    .pipe(livereload())
+    .pipe(connect.reload())
+})
+
+//注册合并压缩css文件
+
+gulp.task('css', function(done){
+    return gulp.src('src/css/*.css')
+       .pipe(concat('build.css'))
+       .pipe(rename({suffix: '.min'}))
+       .pipe(cssClean({compatibility: 'ie8'}))
+       .pipe(gulp.dest('dist/css/'))
+       .pipe(livereload())
+       .pipe(connect.reload())
+})
+
+// 注册压缩html的任务
+gulp.task('html', function(done){
+    return gulp.src('index.html')
+      .pipe(htmlMin({collapseWhitespace:true}))
+      .pipe(gulp.dest('dist/'))
+      .pipe(livereload())
+      .pipe(connect.reload())
+     
+})
+
+// 注册监视任务
+gulp.task('watch',['default'],function(){
+    // 开启监听
+    livereload.listen();
+    //确定监听的目标以及绑定相应的任务
+    gulp.watch('src/js/*.js',['js']);
+    gulp.watch(['src/css/*.css','src/less/*.less'],['css'])
+})
+
+// gulp.task('reload', function(done){
+//     browserSync.reload();
+//     done()//记住,所有的task()都要这样做(done参数+done()回调,否则无法重新调用这个函数了)
+// });
+gulp.task('server', ['default'] ,function(done) {
+    connect.server({
+        root: 'dist/',
+        livereload: true,
+        port: 8080
+    });
+    //open可以自动打开指定端口号
+    open('http://localhost:8080/')    
+
+    //确定监听的目标以及绑定相应的任务
+    gulp.watch('src/js/*.js',['js']);
+    gulp.watch(['src/css/*.css','src/less/*.less'],['css'])
+})
+
+// 注册默认任务
+// gulp.watch(['src/js/*.js', '  src/css/*.css','src/less/*.less'], ['js', 'less', 'css', 'html','reload']);
+gulp.task('default', ['js', 'less', 'css', 'html']);
+
+
+
+   
+  
+
+
+
